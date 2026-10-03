@@ -1,0 +1,14 @@
+.canvas {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - 50px);
+  background: #f5f7fb;
+  overflow: hidden;
+}
+
+.toolbar {
+  height: 50px;
+  background: #1089b5;
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+}

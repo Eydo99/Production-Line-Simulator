@@ -1,0 +1,24 @@
+.queue {
+  position: absolute;
+  width: 120px;
+  height: 80px;
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #ddd;
+  padding: 10px;
+  cursor: grab;
+  user-select: none;
+}
+
+.queue.selected {
+  border-color: #2563eb;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.count {
+  margin-top: 6px;
+  color: #555;
+}

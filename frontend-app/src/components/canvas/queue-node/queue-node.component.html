@@ -1,0 +1,77 @@
+<div
+  class="absolute w-44 h-36 bg-white rounded-xl border-2 border-slate-300
+         shadow-md hover:border-primary/50 hover:shadow-lg transition-all
+         cursor-grab select-none overflow-hidden"
+  [style.left.px]="queue.x"
+  [style.top.px]="queue.y"
+  appDraggable
+  [canvasScale]="canvasScale"
+  [canvasPanX]="canvasPanX"
+  [canvasPanY]="canvasPanY"
+  appSelectable
+  (dragEnd)="onDragEnd($event)"
+>
+  <!-- HEADER -->
+  <div
+    class="h-9 bg-gradient-to-r from-blue-50 to-slate-50 rounded-t-[10px] border-b border-slate-200
+           flex items-center justify-between px-3">
+    <span class="text-sm font-bold text-slate-700 tracking-wide">
+      {{ queue.id }}
+    </span>
+    <div class="flex items-center gap-1">
+      <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+      <span class="text-[10px] text-slate-500 font-medium">QUEUE</span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="h-[calc(100%-2.25rem)] flex flex-col items-center justify-center p-3">
+
+    <!-- COLORED PRODUCT DOTS - Small dots with ellipsis -->
+    <div class="w-full mb-2">
+      <div class="flex gap-1 flex-wrap justify-center items-center px-1 max-h-8 overflow-hidden">
+        <!-- Show first 15 products as dots -->
+        <div
+          *ngFor="let product of getVisibleProducts(); let i = index"
+          [style.background-color]="product.color"
+          class="w-2 h-2 rounded-full shadow-sm border border-white/30 flex-shrink-0"
+          [title]="'Product ' + product.id">
+        </div>
+        
+        <!-- Show ellipsis if more than 15 products -->
+        <span 
+          *ngIf="hasMoreProducts()" 
+          class="text-slate-400 text-xs font-bold ml-0.5"
+          [title]="'+ ' + getRemainingProductsCount() + ' more products'">
+          ...
+        </span>
+      </div>
+    </div>
+
+    <!-- SIZE DISPLAY -->
+    <span class="text-4xl font-mono font-bold text-slate-800 leading-none">
+      {{ queue.size }}
+    </span>
+
+    <span class="text-xs text-slate-500 uppercase font-semibold mt-1.5 tracking-wider">
+      Items in Queue
+    </span>
+  </div>
+
+  <!-- INPUT CONNECTOR (LEFT) -->
+  <div
+    class="absolute top-1/2 -left-1.5 w-4 h-4 bg-white
+           border-2 border-green-500 rounded-full -translate-y-1/2
+           shadow-sm z-10"
+    title="Input">
+  </div>
+
+  <!-- OUTPUT CONNECTOR (RIGHT) -->
+  <div
+    class="absolute top-1/2 -right-1.5 w-4 h-4 bg-white
+           border-2 border-blue-500 rounded-full -translate-y-1/2
+           shadow-sm z-10"
+    title="Output">
+  </div>
+
+</div>

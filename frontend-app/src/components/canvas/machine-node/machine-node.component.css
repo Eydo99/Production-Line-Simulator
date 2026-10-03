@@ -1,0 +1,38 @@
+.machine {
+  position: absolute;
+  width: 120px;
+  height: 80px;
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #ddd;
+  padding: 10px;
+  cursor: grab;
+  user-select: none;
+}
+
+.machine.selected {
+  border-color: #2563eb;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.status {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status.idle {
+  color: #22c55e;
+}
+
+.status.processing {
+  color: #3b82f6;
+}
+
+.status.error {
+  color: #ef4444;
+}

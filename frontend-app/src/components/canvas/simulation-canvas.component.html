@@ -1,0 +1,319 @@
+<!-- TOP TOOLBAR with Playback Controls in the middle -->
+<div class="h-16 bg-white border-b border-slate-200 flex items-center px-4 justify-between shadow-sm">
+
+  <!-- LEFT SIDE: Logo and Title -->
+  <div class="flex items-center gap-4">
+    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+      <span class="material-symbols-outlined">schema</span>
+    </div>
+    <h1 class="text-lg font-bold">SimBuilder</h1>
+  </div>
+
+
+  <!-- CENTER: Playback Controls -->
+  <div class="flex-1 flex items-center justify-center gap-4">
+    <app-playback-controls 
+      [queues]="queues" 
+      [machines]="machines" 
+      [connections]="connections">
+    </app-playback-controls>
+
+    <!-- Connection Status -->
+    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
+      <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300" [class.bg-green-500]="isConnected"
+        [class.bg-red-500]="!isConnected" [class.animate-pulse]="isConnected"></div>
+      <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+        {{ isConnected ? 'Live' : 'Offline' }}
+      </span>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE: Add Queue/Machine/Connection Buttons -->
+  <div class="flex items-center gap-2">
+    <!-- Add Queue Button -->
+    <button (click)="addQueue()" [disabled]="isRunning" class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
+      <span class="material-symbols-outlined text-lg">layers</span>
+      Add Queue
+    </button>
+
+    <!-- Add Machine Button -->
+    <button (click)="addMachine()" [disabled]="isRunning" class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
+      <span class="material-symbols-outlined text-lg">precision_manufacturing</span>
+      Add Machine
+    </button>
+
+    <!-- Connection Mode Toggle -->
+    <button (click)="toggleConnectionMode()" [disabled]="isRunning" [class.bg-primary]="connectingMode && !isRunning"
+      [class.text-white]="connectingMode && !isRunning" [class.bg-slate-100]="!connectingMode || isRunning"
+      [class.hover:bg-slate-200]="!connectingMode && !isRunning" class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
+      <span class="material-symbols-outlined text-lg">cable</span>
+      {{ connectingMode ? 'Connecting...' : 'Connect' }}
+    </button>
+  </div>
+
+</div>
+
+<!-- WORKSPACE -->
+<div class="flex h-[calc(100vh-64px)] overflow-hidden">
+
+  <!-- CANVAS -->
+  <main class="relative flex-1 bg-slate-50 overflow-hidden">
+
+    <!-- GRID BACKGROUND -->
+    <div
+      class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:24px_24px] opacity-60 pointer-events-none">
+    </div>
+    <!-- Statistics Display -->
+      <div class="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+          <span class="text-slate-600">Queues: <strong>{{ queues.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span class="text-slate-600">Machines: <strong>{{ machines.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+          <span class="text-slate-600">Connections: <strong>{{ connections.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          <span class="text-slate-600">Zoom: <strong>{{ (scale * 100).toFixed(0) }}%</strong></span>
+        </div>
+      </div>
+
+    <!-- Zoom Controls -->
+    <app-zoom-controls (zoomIn)="handleZoomIn()" (zoomOut)="handleZoomOut()" (resetZoom)="handleResetZoom()">
+    </app-zoom-controls>
+
+    <!-- Canvas Container WITH TRANSFORM -->
+    <div class="relative w-full h-full canvas-container" [style.transform]="getCanvasTransform()"
+      style="transform-origin: center center; transition: transform 0.1s ease-out;">
+
+      <!-- SVG CONNECTION LAYER -->
+      <app-connection-line [connections]="connections"></app-connection-line>
+
+      <!-- QUEUES - Pass scale, panX, panY -->
+      <app-queue-node *ngFor="let q of queues" [queue]="q" [canvasScale]="scale" [canvasPanX]="panX" [canvasPanY]="panY"
+        [class.ring-4]="selectedNode?.id === q.id" [class.ring-primary]="selectedNode?.id === q.id"
+        (moved)="onQueueMoved(q, $event)" (click)="selectNodeForConnection(q.id, 'queue')">
+      </app-queue-node>
+
+      <!-- MACHINES -->
+      <app-machine-node *ngFor="let m of machines" [machine]="m" [class.ring-4]="selectedNode?.id === m.name"
+        [class.ring-primary]="selectedNode?.id === m.name" (moved)="onMachineMoved(m, $event)"
+        (click)="selectNodeForConnection(m.name, 'machine')">
+      </app-machine-node>
+
+      <!-- Connection Mode Indicator -->
+      <div *ngIf="connectingMode"
+        class="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-20 flex items-center gap-2 animate-pulse">
+        <span class="material-symbols-outlined">link</span>
+        <span class="font-semibold">
+          {{ selectedNode ? 'Select target node (Q→M→Q pattern)' : 'Select first node to connect' }}
+        </span>
+      </div>
+
+      
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR - PROPERTIES PANEL -->
+  <aside class="w-[320px] bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden">
+
+    <!-- Panel Header -->
+    <div class="h-14 border-b border-slate-200 flex items-center justify-between px-4 bg-slate-50">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-slate-600">tune</span>
+        <h2 class="font-semibold text-slate-700">Properties</h2>
+      </div>
+      <button *ngIf="selectedNodeDetails" (click)="clearSelection()"
+        class="p-1 hover:bg-slate-200 rounded transition-colors">
+        <span class="material-symbols-outlined text-slate-500 text-lg">close</span>
+      </button>
+    </div>
+
+    <!-- Panel Content -->
+    <div class="flex-1 overflow-y-auto p-4">
+
+      <!-- NO SELECTION STATE -->
+      <div *ngIf="!selectedNodeDetails" class="flex flex-col items-center justify-center h-full text-center">
+        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+          <span class="material-symbols-outlined text-4xl text-slate-400">touch_app</span>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-700 mb-1">No Selection</h3>
+        <p class="text-xs text-slate-500 max-w-[200px]">
+          Click on a queue or machine to view and edit its properties
+        </p>
+      </div>
+
+      <!-- QUEUE PROPERTIES -->
+      <div *ngIf="selectedNodeDetails?.type === 'queue'" class="space-y-4">
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 pb-3 border-b border-slate-200">
+          <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-600">layers</span>
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-800">{{ $any(selectedNodeDetails!.data).id }}</h3>
+            <p class="text-xs text-slate-500">Queue Node</p>
+          </div>
+        </div>
+
+        <!-- Current Size -->
+        <div class="bg-blue-50 rounded-lg p-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-blue-700">Current Size</span>
+            <span class="text-2xl font-bold text-blue-600">{{ $any(selectedNodeDetails!.data).size || 0 }}</span>
+          </div>
+          <div class="h-2 bg-blue-200 rounded-full overflow-hidden mt-2">
+            <div class="h-full bg-blue-500 transition-all duration-300"
+              [style.width.%]="($any(selectedNodeDetails!.data).size / $any(selectedNodeDetails!.data).capacity) * 100">
+            </div>
+          </div>
+          <p class="text-xs text-blue-600 mt-1">
+            Capacity: {{ $any(selectedNodeDetails!.data).capacity }}
+          </p>
+        </div>
+
+        <!-- Position -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Position</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-50 rounded-lg p-2">
+              <span class="text-xs text-slate-500">X</span>
+              <p class="text-sm font-semibold text-slate-700">{{ $any(selectedNodeDetails!.data).x.toFixed(0) }}px</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-2">
+              <span class="text-xs text-slate-500">Y</span>
+              <p class="text-sm font-semibold text-slate-700">{{ $any(selectedNodeDetails!.data).y.toFixed(0) }}px</p>
+            </div>
+          </div>
+        </div>
+        <!-- Delete Button -->
+        <div class="pt-2">
+          <button (click)="deleteSelectedNode()" [disabled]="isRunning"
+            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50">
+            <span class="material-symbols-outlined text-lg">delete</span>
+            Delete Queue
+          </button>
+        </div>
+
+      </div>
+
+      <!-- MACHINE PROPERTIES -->
+      <div *ngIf="selectedNodeDetails?.type === 'machine'" class="space-y-4">
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 pb-3 border-b border-slate-200">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+            [style.background-color]="$any(selectedNodeDetails!.data).color + '20'">
+            <span class="material-symbols-outlined"
+              [style.color]="$any(selectedNodeDetails!.data).color">precision_manufacturing</span>
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-800">{{ $any(selectedNodeDetails!.data).name }}</h3>
+            <p class="text-xs text-slate-500">Machine Node</p>
+          </div>
+        </div>
+
+        <!-- Status Badge -->
+        <div class="bg-slate-50 rounded-lg p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-600">Status</span>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full" [class.bg-green-500]="$any(selectedNodeDetails!.data).ready"
+                [class.bg-blue-500]="!$any(selectedNodeDetails!.data).ready"
+                [class.animate-pulse]="!$any(selectedNodeDetails!.data).ready">
+              </div>
+              <span class="text-sm font-semibold uppercase"
+                [class.text-green-600]="$any(selectedNodeDetails!.data).ready"
+                [class.text-blue-600]="!$any(selectedNodeDetails!.data).ready">
+                {{ $any(selectedNodeDetails!.data).status }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Service Time -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Service Time</label>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <div class="flex items-baseline gap-1">
+              <span class="text-2xl font-bold text-slate-700">{{ $any(selectedNodeDetails!.data).serviceTime / 1000
+                }}</span>
+              <span class="text-sm text-slate-500">seconds</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">{{ $any(selectedNodeDetails!.data).serviceTime }}ms</p>
+          </div>
+        </div>
+
+        <!-- Update Service Time -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Update Service Time</label>
+          <div class="flex gap-2">
+            <input type="number" [(ngModel)]="newServiceTime"
+              class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+              placeholder="Seconds">
+            <button (click)="updateMachineServiceTime()"
+              class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+              Update
+            </button>
+          </div>
+        </div>
+
+        <!-- Position -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Position</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-50 rounded-lg p-2">
+              <span class="text-xs text-slate-500">X</span>
+              <p class="text-sm font-semibold text-slate-700">{{ $any(selectedNodeDetails!.data).x.toFixed(0) }}px</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-2">
+              <span class="text-xs text-slate-500">Y</span>
+              <p class="text-sm font-semibold text-slate-700">{{ $any(selectedNodeDetails!.data).y.toFixed(0) }}px</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete Button -->
+        <div class="pt-2">
+          <button (click)="deleteSelectedNode()" [disabled]="isRunning"
+            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50">
+            <span class="material-symbols-outlined text-lg">delete</span>
+            Delete Machine
+          </button>
+        </div>
+        <!-- Current Product -->
+        <div *ngIf="$any(selectedNodeDetails!.data).currentProduct"
+          class="bg-orange-50 rounded-lg p-3 border border-orange-200">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-orange-600 text-sm">inventory_2</span>
+            <span class="text-xs font-semibold text-orange-700 uppercase">Processing Product</span>
+          </div>
+          <p class="text-sm font-medium text-orange-800">{{ $any(selectedNodeDetails!.data).currentProduct.id ||
+            'Product' }}</p>
+        </div>
+
+      </div>
+
+
+
+    </div>
+
+
+    <!-- Panel Footer -->
+    <div class="h-12 border-t border-slate-200 flex items-center justify-center px-4 bg-slate-50">
+      <p class="text-xs text-slate-500">
+        <span class="font-semibold">{{ queues.length + machines.length }}</span> total nodes
+      </p>
+    </div>
+
+  </aside>
+</div>

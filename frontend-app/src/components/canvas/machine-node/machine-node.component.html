@@ -1,0 +1,104 @@
+<div
+  class="absolute w-44 h-40 rounded-xl border-2 shadow-md
+         hover:border-primary/50 hover:shadow-lg transition-all
+         cursor-grab select-none overflow-hidden"
+  [class.border-slate-300]="machine.status === 'idle'"
+  [class.border-blue-500]="machine.status === 'processing'"
+  [class.border-yellow-400]="machine.status === 'FLASHING'"
+  [class.animate-pulse]="machine.status === 'FLASHING'"
+  [style.left.px]="machine.x"
+  [style.top.px]="machine.y"
+  [style.background-color]="getMachineColor() + '15'"
+
+  appDraggable
+  appSelectable
+  (dragEnd)="onDragEnd($event)"
+>
+
+  <!-- HEADER -->
+  <div
+    class="h-10 rounded-t-[10px] border-b
+           flex items-center justify-between px-3 transition-all"
+    [style.background-color]="getMachineColor() + '25'"
+    [style.border-color]="getMachineColor() + '40'">
+    <span class="text-sm font-bold tracking-wider transition-colors"
+          [style.color]="getMachineColor()">
+      {{ machine.name }}
+    </span>
+    <div
+      class="w-2.5 h-2.5 rounded-full transition-all"
+      [ngClass]="getStatusColor()">
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="h-[calc(100%-2.5rem)] flex flex-col items-center justify-center p-3 space-y-2">
+
+    <!-- MACHINE ICON -->
+    <div class="mb-1"
+         [class.animate-bounce]="machine.status === 'FLASHING'">
+      <svg
+        class="w-12 h-12 transition-colors duration-300"
+        [style.color]="getMachineColor()"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+        </path>
+      </svg>
+    </div>
+
+    <!-- STATUS TEXT -->
+    <span
+      class="text-xs font-bold uppercase tracking-wide transition-colors"
+      [ngClass]="{
+        'text-green-600': machine.status === 'idle',
+        'text-blue-600': machine.status === 'processing',
+        'text-yellow-600 animate-pulse': machine.status === 'FLASHING'
+      }">
+      {{ getStatusText() }}
+    </span>
+
+    <!-- SERVICE TIME -->
+    <span class="text-[11px] text-slate-500 font-medium">
+      ⏱ {{ getServiceTimeSeconds() }}s process time
+    </span>
+
+    <!-- CURRENT PRODUCT INDICATOR -->
+    <span
+      *ngIf="machine.status === 'processing'"
+      class="text-[10px] text-blue-600 font-semibold animate-pulse">
+      🔧 Processing...
+    </span>
+
+    <!-- COMPLETION INDICATOR -->
+    <span
+      *ngIf="machine.status === 'FLASHING'"
+      class="text-[11px] text-yellow-600 font-bold animate-pulse">
+      ✨ Complete!
+    </span>
+  </div>
+
+  <!-- INPUT CONNECTOR (LEFT) -->
+  <div
+    class="absolute top-1/2 -left-1.5 w-4 h-4 bg-white
+           border-2 rounded-full -translate-y-1/2 transition-colors shadow-sm z-10"
+    [class.border-green-500]="machine.inputQueue"
+    [class.border-slate-300]="!machine.inputQueue"
+    title="Input">
+  </div>
+
+  <!-- OUTPUT CONNECTOR (RIGHT) -->
+  <div
+    class="absolute top-1/2 -right-1.5 w-4 h-4 bg-white
+           border-2 rounded-full -translate-y-1/2 transition-colors shadow-sm z-10"
+    [class.border-blue-500]="machine.outputQueue"
+    [class.border-slate-300]="!machine.outputQueue"
+    title="Output">
+  </div>
+
+</div>

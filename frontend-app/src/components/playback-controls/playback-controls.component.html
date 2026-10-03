@@ -1,0 +1,197 @@
+<div class="flex items-center gap-2">
+
+  <!-- REPLAY MODE INDICATOR (Fixed position, top-right) -->
+  <div *ngIf="isReplaying"
+       class="fixed top-4 right-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-2 rounded-lg shadow-2xl z-50 flex items-center gap-2 animate-pulse">
+    <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+    <div>
+      <div class="font-bold text-sm">🔁 REPLAY MODE</div>
+      <div class="text-xs opacity-90">Replaying recorded simulation...</div>
+    </div>
+  </div>
+
+  <!-- VALIDATION ERROR POPUP -->
+  <div *ngIf="showValidationPopup && validationResult" 
+       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+       (click)="closeValidationPopup()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Header -->
+      <div class="bg-red-500 text-white px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-3xl">error</span>
+          <div>
+            <h2 class="text-xl font-bold">Configuration Errors</h2>
+            <p class="text-sm opacity-90">Please fix these issues before starting</p>
+          </div>
+        </div>
+        <button (click)="closeValidationPopup()"
+                class="p-2 hover:bg-red-600 rounded-lg transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 max-h-[60vh] overflow-y-auto">
+        
+        <!-- Errors List -->
+        <div *ngIf="validationResult.errors.length > 0" class="space-y-3 mb-6">
+          <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+            <span class="material-symbols-outlined text-red-500">cancel</span>
+            Errors ({{ validationResult.errors.length }})
+          </h3>
+          <div class="space-y-2">
+            <div *ngFor="let error of validationResult.errors"
+                 class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg p-3">
+              <span class="material-symbols-outlined text-red-500 text-lg flex-shrink-0">error</span>
+              <p class="text-sm text-red-800 leading-relaxed">{{ error }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warnings List -->
+        <div *ngIf="validationResult.warnings.length > 0" class="space-y-3">
+          <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+            <span class="material-symbols-outlined text-yellow-500">warning</span>
+            Warnings ({{ validationResult.warnings.length }})
+          </h3>
+          <div class="space-y-2">
+            <div *ngFor="let warning of validationResult.warnings"
+                 class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <span class="material-symbols-outlined text-yellow-600 text-lg flex-shrink-0">warning</span>
+              <p class="text-sm text-yellow-800 leading-relaxed">{{ warning }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-blue-500 text-lg flex-shrink-0">info</span>
+            <div class="text-sm text-blue-800">
+              <p class="font-semibold mb-2">Quick Fix Guide:</p>
+              <ul class="space-y-1 list-disc list-inside">
+                <li>Isolated nodes: Connect them to other nodes</li>
+                <li>Dead-end machines: Add an output queue</li>
+                <li>Machines without input: Add an input queue</li>
+                <li>No source queue: Ensure at least one queue has no input</li>
+                <li>Invalid connections: Follow Q→M→Q pattern</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
+        <p class="text-xs text-slate-500">
+          Fix all errors to start the simulation
+        </p>
+        <button (click)="closeValidationPopup()"
+                class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPLAY Button -->
+  <button [disabled]="isRunning || !hasSnapshot"
+          (click)="onReplay()"
+          class="h-10 w-10 rounded-lg bg-indigo-500 hover:bg-indigo-600
+                 text-white flex items-center justify-center transition-all
+                 disabled:opacity-50 disabled:cursor-not-allowed
+                 shadow-md hover:shadow-lg relative"
+          [title]="hasSnapshot ? 'Replay Previous Simulation' : 'No snapshot available'">
+    <span class="material-symbols-outlined text-xl">replay</span>
+    <span *ngIf="hasSnapshot"
+          class="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></span>
+  </button>
+
+  <!-- START/RESUME Button -->
+  <button *ngIf="!isRunning || isPaused"
+          (click)="onStart()"
+          [disabled]="isRunning && !isPaused"
+          class="h-10 w-10 rounded-lg bg-green-500 hover:bg-green-600
+                 text-white flex items-center justify-center transition-all
+                 disabled:opacity-50 disabled:cursor-not-allowed shadow-md
+                 hover:shadow-lg"
+          [title]="isPaused ? 'Resume' : 'Start Simulation'">
+    <span class="material-symbols-outlined text-xl">
+      {{ isPaused ? 'play_arrow' : 'play_arrow' }}
+    </span>
+  </button>
+
+  <!-- PAUSE Button -->
+  <button *ngIf="isRunning && !isPaused"
+          (click)="onPause()"
+          class="h-10 w-10 rounded-lg bg-yellow-500 hover:bg-yellow-600
+                 text-white flex items-center justify-center transition-all
+                 shadow-md hover:shadow-lg"
+          title="Pause Simulation">
+    <span class="material-symbols-outlined text-xl">pause</span>
+  </button>
+
+  <!-- STOP Button -->
+  <button (click)="onStop()"
+          [disabled]="!isRunning"
+          class="h-10 w-10 rounded-lg bg-red-500 hover:bg-red-600
+                 text-white flex items-center justify-center transition-all
+                 disabled:opacity-50 disabled:cursor-not-allowed shadow-md
+                 hover:shadow-lg"
+          title="Stop Simulation">
+    <span class="material-symbols-outlined text-xl">stop</span>
+  </button>
+
+  <!-- Status Indicator -->
+  <div class="ml-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+    <div class="w-2 h-2 rounded-full"
+         [class.bg-green-500]="isRunning && !isPaused && !isReplaying"
+         [class.bg-purple-500]="isReplaying"
+         [class.bg-yellow-500]="isPaused"
+         [class.bg-slate-400]="!isRunning"
+         [class.animate-pulse]="isRunning">
+    </div>
+    <span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+      {{ getStatusText() }}
+    </span>
+  </div>
+
+  <!-- Statistics Display -->
+  <div class="ml-2 flex items-center gap-4 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-blue-500 text-sm">inventory_2</span>
+      <span class="text-xs text-slate-600">Gen:</span>
+      <span class="text-xs font-bold text-slate-700">{{ statistics.totalGenerated }}</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+      <span class="text-xs text-slate-600">Proc:</span>
+      <span class="text-xs font-bold text-slate-700">{{ statistics.totalProcessed }}</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-purple-500 text-sm">schedule</span>
+      <span class="text-xs font-bold text-slate-700">{{ formatDuration(statistics.duration) }}</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-orange-500 text-sm">layers</span>
+      <span class="text-xs text-slate-600">Avg:</span>
+      <span class="text-xs font-bold text-slate-700">{{ statistics.avgQueueLength.toFixed(1) }}</span>
+    </div>
+  </div>
+
+  <!-- Clear Button -->
+  <button (click)="onClear()"
+          [disabled]="isRunning"
+          class="h-10 px-3 rounded-lg bg-slate-200 hover:bg-slate-300
+                 text-slate-700 flex items-center gap-2 transition-all
+                 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Clear Simulation">
+    <span class="material-symbols-outlined text-lg">delete_sweep</span>
+    <span class="text-xs font-medium">Clear</span>
+  </button>
+</div>
